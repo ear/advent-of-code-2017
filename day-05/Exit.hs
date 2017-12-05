@@ -2,6 +2,7 @@
 module Main where
 
 import Data.List
+import Data.Maybe
 
 main :: IO ()
 main = do
@@ -9,11 +10,13 @@ main = do
   print $ go problem1 maze
   print $ go problem2 maze
 
+problem1, problem2 :: Int -> Int
 problem1 = succ
 problem2 x | x > 2     = x-1
            | otherwise = x+1
 
 data Maze a = In { left_ :: [a], at_ :: a, right_ :: [a] } | Out
+  deriving Eq
 
 instance Show a => Show (Maze a) where
   show Out = "Out"
@@ -26,38 +29,37 @@ enter (x:xs) = In [] x xs
 
 -- Single movements
 
-right :: Maze a -> Maze a
-right (In _  _ []    ) = Out
-right (In ls x (r:rs)) = In (x:ls) r rs
-right Out = Out
+right1 :: Maze a -> Maze a
+right1 (In _  _ []    ) = Out
+right1 (In ls x (r:rs)) = In (x:ls) r rs
+right1 Out = Out
 
-left :: Maze a -> Maze a
-left (In []     _ _ ) = Out
-left (In (l:ls) x rs) = In ls l (x:rs)
-left Out = Out
+left1 :: Maze a -> Maze a
+left1 (In []     _ _ ) = Out
+left1 (In (l:ls) x rs) = In ls l (x:rs)
+left1 Out = Out
 
 -- Move N times in one direction
 
-r :: Int -> Maze a -> Maze a
-r 0 m = m
-r n m = r (n-1) (right m)
+right :: Int -> Maze a -> Maze a
+right 0 m = m
+right n m = right (n-1) (right1 m)
 
-l :: Int -> Maze a -> Maze a
-l 0 m = m
-l n m = l (n-1) (left m)
+left :: Int -> Maze a -> Maze a
+left 0 m = m
+left n m = left (n-1) (left1 m)
 
 -- Travel a maze using the given update function
 -- Returns the number of steps to get out
 
 go :: (Int -> Int) -> Maze Int -> Int
-go update = fst . last . go' 0 update
+go update = fromJust . findIndex (Out ==) . go' update
 
-go' :: Int -> (Int -> Int) -> Maze Int -> [(Int,Maze Int)]
-go' n _      Out = [(n,Out)]
-go' n update m@(In ls x rs) = (n,m) : go' (n+1) update m''
+go' :: (Int -> Int) -> Maze Int -> [Maze Int]
+go' _         Out         = [Out]
+go' update m@(In ls x rs) = m : go' update m'
   where
-    m' = (In ls (update x) rs)
-    move | x >  0 = r x
+    move | x >  0 = right x
          | x == 0 = id
-         | x <  0 = l (-x)
-    m'' = move m'
+         | x <  0 = left (-x)
+    m' = move $ In ls (update x) rs
