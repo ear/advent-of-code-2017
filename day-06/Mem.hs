@@ -3,17 +3,17 @@
 module Main where
 
 import Data.Hashable
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as H
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as H
 
 main :: IO ()
--- main = readFile "input.txt" >>= print . go . fromList . map (read @Int) . words
 main = print . go . fromList $ xs
 
 xs :: [Int]
 len :: Int
 
 xs = [5,1,10,0,1,7,13,14,3,12,8,10,7,12,0,6]
+-- xs = [0,2,7,0]
 len = length xs
 
 memory :: Mem
@@ -62,7 +62,8 @@ redistribute mem = mem'
 
 go = walk (H.empty) . zip [0..] . iterate redistribute
   where
-    walk :: HashSet Mem -> [(Int, Mem)] -> Int
-    walk seen ((i,m):ms) | H.member m seen = i
-                         | otherwise       = walk (H.insert m seen) ms
+    walk :: HashMap Mem Int -> [(Int, Mem)] -> Int
+    walk seen ((i,m):ms) | H.member m seen = let Just i' = H.lookup m seen
+                                             in i - i'
+                         | otherwise       = walk (H.insert m i seen) ms
 
