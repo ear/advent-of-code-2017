@@ -62,8 +62,8 @@ redistribute mem = mem'
 
 go = walk (H.empty) . zip [0..] . iterate redistribute
   where
-    walk :: HashMap Mem Int -> [(Int, Mem)] -> Int
+    walk :: HashMap Mem Int -> [(Int, Mem)] -> (Int, Int)
     walk seen ((i,m):ms) | H.member m seen = let Just i' = H.lookup m seen
-                                             in i - i'
+                                             in (i, i - i')
                          | otherwise       = walk (H.insert m i seen) ms
 
