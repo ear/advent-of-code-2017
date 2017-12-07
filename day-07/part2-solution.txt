@@ -1,0 +1,135 @@
+[1 of 1] Compiling Main             ( Balance.hs, interpreted )
+Ok, modules loaded: Main.
+*Main> t <- readTower "input.tree"
+*Main> p (t -$ "qawlwzi" -$ "jfrda" -$ "lnpuarm")
+lnpuarm 918
+|
++- ksbkavj 145
+|  |
+|  +- cypwd 14
+|  |
+|  `- rxnlgc 14
+|
++- fmsgmoq 135
+|  |
+|  +- xgsbu 19
+|  |
+|  `- ykxrxbb 19
+|
+`- biumgl 97
+   |
+   +- ulrqrc 38
+   |
+   `- wlswfp 38
+*Main> sums (t -$ "qawlwzi" -$ "jfrda" -$ "lnpuarm")
+[("ksbkavj",173),("fmsgmoq",173),("biumgl",173)]
+*Main> 145+14+14
+173
+*Main> 135+19+19
+173
+*Main> 97+38+38
+173
+*Main> sums (t -$ "qawlwzi" -$ "jfrda")
+[("lnpuarm",1437),("oahfm",1429),("nsfjyfr",1429)]
+*Main> p (t -$ "qawlwzi" -$ "jfrda")
+jfrda 3994
+|
++- lnpuarm 918
+|  |
+|  +- ksbkavj 145
+|  |  |
+|  |  +- cypwd 14
+|  |  |
+|  |  `- rxnlgc 14
+|  |
+|  +- fmsgmoq 135
+|  |  |
+|  |  +- xgsbu 19
+|  |  |
+|  |  `- ykxrxbb 19
+|  |
+|  `- biumgl 97
+|     |
+|     +- ulrqrc 38
+|     |
+|     `- wlswfp 38
+|
++- oahfm 823
+|  |
+|  +- gxzkef 116
+|  |  |
+|  |  +- qrshe 43
+|  |  |
+|  |  `- djsyo 43
+|  |
+|  +- zujfczp 122
+|  |  |
+|  |  +- yduyn 40
+|  |  |
+|  |  `- ldyrkdm 40
+|  |
+|  `- tmakc 44
+|     |
+|     +- tqxmke 79
+|     |
+|     `- ipljy 79
+|
+`- nsfjyfr 79
+   |
+   +- pavvcsj 218
+   |  |
+   |  +- ssvcrjn 26
+   |  |
+   |  `- nzylp 26
+   |
+   +- thidj 116
+   |  |
+   |  +- xzllgwq 77
+   |  |
+   |  `- vcfxh 77
+   |
+   +- yvjkb 9
+   |  |
+   |  +- pttqho 87
+   |  |
+   |  +- jujcekp 87
+   |  |
+   |  `- sabsqv 87
+   |
+   +- udkcxo 84
+   |  |
+   |  +- xuprtp 93
+   |  |
+   |  `- simsfkz 93
+   |
+   `- zehou 270
+*Main> sums (t -$ "qawlwzi" -$ "jfrda")
+[("lnpuarm",1437),("oahfm",1429),("nsfjyfr",1429)]
+*Main> 1429 - 173
+1256
+*Main> 1256 + 173
+1429
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,1256); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70971),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,1250); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70965),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,1050); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70765),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,950); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70665),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,940); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70655),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,900); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70615),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+*Main> t' = fmap (\(l,w) -> case l of "lnpuarm" -> (l,910); _ -> (l,w)) t
+*Main> sums t'
+[("vonbixj",70625),("qawlwzi",70625),("wqxbp",70625),("tcsrpxb",70625),("xlieqz",70625),("yghqsa",70625),("asexwc",70625)]
+
+910 does it
+
