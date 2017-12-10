@@ -10,11 +10,22 @@ import Control.Arrow ((***), (&&&))
 -- import Data.Tree (Tree(..))
 -- import qualified Data.Tree as T
 
+import Data.Monoid
+
 main :: IO ()
 main = do
   input <- head . lines <$> readFile "input.txt"
   let xs = S.fromList input
+  putStr "Part 1 --- input score: "
   print . score . uncomma . ungarbage . unescape $ xs
+  putStr "Part 2 --- unescaped garbage characters: "
+  let n1 = S.length . unescape $ xs
+      n2 = S.length . ungarbage . unescape $ xs
+      n3 = count '>' . unescape $ xs
+  print $ n1 - n2 - 2*n3
+    where
+      count c = getSum . foldMap (is c)
+      is c x | c == x = Sum 1 | otherwise = Sum 0
 
 type Stream = Seq Char
 
