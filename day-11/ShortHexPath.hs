@@ -1,5 +1,5 @@
 module Main where
-import Data.List (unfoldr, foldl')
+import Data.List (unfoldr)
 
 main :: IO ()
 main = do
@@ -8,10 +8,13 @@ main = do
   let path = parse input
   print $ length path
   putStr "end point: "
-  let end = travel path
+  let places = travel path
+      end = last places
   print end
   putStr "distance (steps) from the origin: "
   print $ dist origin end
+  putStr "maximum distance reached during travel: "
+  print . maximum . map (dist origin) $ places
 
 -- Cube coordinates for an hexagonal grid
 
@@ -44,8 +47,8 @@ parse = unfoldr go
 origin :: Coord
 origin = C 0 0 0
 
-travel :: [Coord] -> Coord
-travel = foldl' go origin
+travel :: [Coord] -> [Coord]
+travel = scanl go origin
   where
     go (C x y z) (C dx dy dz) = C (x+dx) (y+dy) (z+dz)
 
