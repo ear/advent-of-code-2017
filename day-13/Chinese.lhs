@@ -32,16 +32,16 @@ The severity for being caught in a layer is the product layer * depth.
 So we have congruences
 
 0 ≡ 0 (mod 4)
-1 ≡ 0 (mod 1)
+1 ≡ 0 (mod 2)
 4 ≡ 0 (mod 6)
-6 ≡ 0 (mod 4)
+6 ≡ 0 (mod 6)
 
 We want to find the smallest x such that, at the same time:
 
 x + 0 ≢ 0 (mod 4)
-x + 1 ≢ 0 (mod 1)
+x + 1 ≢ 0 (mod 2)
 x + 4 ≢ 0 (mod 6)
-x + 6 ≢ 0 (mod 4)
+x + 6 ≢ 0 (mod 6)
 
 Let's try brute force first. The general form of the equation is:
 
