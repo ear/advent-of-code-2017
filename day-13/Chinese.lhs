@@ -26,13 +26,51 @@ The severity for being caught in a layer is the product layer * depth.
 >   | layer `mod` (period depth) == 0 = layer * depth
 >   | otherwise                       = 0
 
-Test data, parsing, and main
+> tripSeverity :: [(Int,Int)] -> Int
+> tripSeverity = sum . map severity
+
+So we have congruences
+
+0 ≡ 0 (mod 4)
+1 ≡ 0 (mod 1)
+4 ≡ 0 (mod 6)
+6 ≡ 0 (mod 4)
+
+We want to find the smallest x such that, at the same time:
+
+x + 0 ≢ 0 (mod 4)
+x + 1 ≢ 0 (mod 1)
+x + 4 ≢ 0 (mod 6)
+x + 6 ≢ 0 (mod 4)
+
+Let's try brute force first. The general form of the equation is:
+
+x + c ≢ 0 (mod n)
+
+> search :: [(Int,Int)] -- [(c,n)]
+>        -> Int         -- x
+> search (map (\(layer,depth) -> (layer, period depth)) -> pairs)
+>   = head . dropWhile (satisfiesAny pairs) $ [0..]
+
+> satisfiesAny :: [(Int,Int)] -> Int -> Bool
+> satisfiesAny pairs x = any (\(c,n) -> (x+c)`mod`n == 0) pairs
+
+Tests:
 
 > ys :: [(Int,Int)]
 > ys = [(0,3),(1,2),(4,4),(6,4)]
 
+> t1, t2 :: Bool
+> t1 = 24 == tripSeverity ys
+> t2 = 10 == search ys
+
+Main program: read input.txt, parse into pairs of numbers, print the solutions.
+
 > main :: IO ()
-> main = input >>= print . sum . map severity
+> main = do
+>   xs <- input
+>   print . sum . map severity $ xs
+>   print . search $ xs
 
 > input :: IO [(Int,Int)]
 > input = map (parse . words) . lines <$> readFile "input.txt"
