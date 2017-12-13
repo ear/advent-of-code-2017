@@ -1,10 +1,12 @@
 {-# LANGUAGE ViewPatterns #-}
 module Main where
+import Data.List
 
 main :: IO ()
 main = do
   input <- r
   print . severity $ input
+  print . opportunity $ input
 
 r :: IO [(Int,Int)]
 r = map (parse . words) . lines <$> readFile "input.txt"
@@ -23,6 +25,9 @@ sweep depth = cycle $ [0..depth-1] ++ reverse (drop 1 $ init [0..depth-1])
 
 severity :: [(Int,Int)] -> Int
 severity xs = sum . map (uncurry (*) . fst) . filter ((0==) . snd) . tail . zip xs $ map f xs
+
+opportunity :: [(Int,Int)] -> Maybe Int
+opportunity = findIndex (not . any (0==)) . transpose . map (\(layer,depth) -> drop layer $ sweep depth)
 
 -- 4: 1 2 3 2 1 0
 --  0 1 2 3 2 1 0 1 2 3 2 1 0 1 2 3 2 1 0 ...
