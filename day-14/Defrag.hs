@@ -1,23 +1,37 @@
+{-# LANGUAGE ViewPatterns #-}
 module Main where
 
 import KnotHash
 
 import Numeric
-import Data.Monoid
-
+import Data.List (foldl')
 import Data.Maybe
 import Data.Graph
+import Data.Monoid
+import Data.Map.Strict (Map, (!))
+import qualified Data.Map.Strict as M
 
 main :: IO ()
 main = do
-  let g = grid "wenycdww"
-  print . countUsed $ g
-  print . countConnectedComponents $ g
+  let grid = fromSeed "wenycdww"
+  print $ countUsed grid
+  print $ countRegions grid
 
-type Grid = [[Int]]
+type Coord = (Int,Int)
 
-grid :: String -> Grid
-grid seed = map (toBits . knothash . (seed ++) . ('-':)) (map show [(0 :: Int)..127])
+data Grid = Grid { grid_ :: Map Coord Int, width_ :: Int, height_ :: Int }
+
+fromSeed :: String -> Grid
+fromSeed seed =
+  toGrid $ map (toBits . knothash . (seed ++) . ('-':) . show) [(0 :: Int)..127]
+  where
+    toGrid bs = Grid ((\(_,_,m) -> m) $ foldl' go (0,0,M.empty) (concat bs)) h w
+      where
+        go (x,y,m) v
+          | x == (w-1) = (0,y+1,M.insert (x,y) v m)
+          | otherwise  = (x+1,y,M.insert (x,y) v m)
+        h = length bs
+        w = length (head bs)
 
 toBits :: String -> [Int]
 toBits = (>>= ((table !!) . fst . head . readHex . pure))
@@ -26,25 +40,29 @@ table :: [[Int]]
 table = [[a,b,c,d] | a<-[0,1], b<-[0,1], c<-[0,1], d<-[0,1]]
 
 countUsed :: Grid -> Int
-countUsed = getSum . foldMap (Sum . getSum . foldMap Sum)
+countUsed = getSum . foldMap Sum . grid_
 
 at :: Grid -> Int -> Int -> Int
-at bits x y = (bits !! y) !! x
+at (grid_ -> bits) x y = bits ! (x,y)
 
-type Coord = (Int,Int)
+inside :: Grid -> Coord -> Bool
+inside (Grid _ w h) (x,y) = 0 <= x && x < w && 0 <= y && y < h
+
+live :: Grid -> Coord -> Bool
+live grid (x,y) = 1 == at grid x y
 
 adjacents :: Grid -> [(Coord,Coord,[Coord])]
-adjacents bits = let height = length bits; width = length (head bits) in
-   [ ((x,y),(x,y),adjacent bits height width x y)
-         | y <- [0..height-1], x <- [0..width-1], 1 == at bits x y ]
+adjacents grid = [ ((x,y), (x,y), adjacent grid x y)
+                 | y <- [0 .. (height_ grid-1)]
+                 , x <- [0 .. (width_ grid-1)]
+                 , live grid (x,y) ]
 
-adjacent :: Grid -> Int -> Int -> Int -> Int -> [(Int,Int)]
-adjacent bits height width x y = mapMaybe live neighbors
+adjacent :: Grid -> Int -> Int -> [(Int,Int)]
+adjacent grid x y = mapMaybe collect neighbors
   where
-    neighbors = filter inside [ (x+1,y), (x,y-1), (x-1,y), (x,y+1) ]
-    inside (x_,y_) = 0 <= x_ && x_ < width && 0 <= y_ && y_ < height
-    live (x1,y1) | 1 == at bits x1 y1 = Just (x1,y1)
-                 | otherwise          = Nothing
+    neighbors = filter (inside grid) [ (x+1,y), (x,y-1), (x-1,y), (x,y+1) ]
+    collect c | live grid c = Just c
+              | otherwise   = Nothing
 
-countConnectedComponents :: Grid -> Int
-countConnectedComponents = length . scc . (\(g,_,_) -> g) . graphFromEdges . adjacents
+countRegions :: Grid -> Int
+countRegions = length . scc . (\(g,_,_) -> g) . graphFromEdges . adjacents
