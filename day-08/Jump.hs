@@ -13,7 +13,7 @@ main = do
   let program = map (parse . words) . lines $ input
       mem :: Memory = M.fromAscList $ zip (registers program) (repeat 0)
   putStrLn . concat $ ["Program: ", show . length $ program, " instructions"]
-  putStrLn $ concat [show $ M.size mem, " registers: "] ++ intercalate ", " (M.keys mem)
+  putStrLn . concat $ [show $ M.size mem, " registers: ", intercalate ", " (M.keys mem)]
   let mem' = scanl exec mem program
   putStr "Maximum register value at the end of execution: "
   print . maximum . M.elems . last $ mem'

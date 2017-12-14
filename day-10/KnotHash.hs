@@ -32,8 +32,10 @@ hashRound :: (Int, Int, Seq Int) -> [Int] -> (Int, Int, Seq Int)
 hashRound = foldl' step
 
 sparseHash :: Int -> [Int] -> [Int]
-sparseHash n = end . foldl' hashRound (0,0,S.fromList [0..n-1]) . replicate 64
-  where end (_,_,x) = toList x
+sparseHash n = end . foldl' hashRound (0,0,begin) . replicate 64
+  where
+    begin = S.fromList [0 .. n-1]
+    end (_,_,x) = toList x
 
 denseHash :: [Int] -> [Int]
 denseHash = unfoldr go
