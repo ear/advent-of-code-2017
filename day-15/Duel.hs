@@ -13,7 +13,7 @@ next :: (Word64,Word64) -> (Word64,Word64)
 next (xa,xb) = ( (xa * a) `mod` m, (xb * b) `mod` m )
 
 mask :: Word64
-mask = pred $ shift 16 2
+mask = pred $ shift 1 16
 
 test :: (Word64,Word64) -> Int
 test (xa,xb) | (xa .&. mask) == (xb .&. mask) = 1
