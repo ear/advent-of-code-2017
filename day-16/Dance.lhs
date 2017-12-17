@@ -1,18 +1,18 @@
+This is the solution to part 2.
+
 > {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 > {-# LANGUAGE ViewPatterns #-}
 > module Main where
 
+> import Data.List
+> import Data.Char (ord, chr)
+> import Data.Maybe (fromJust)
+
 > import Text.Parsec hiding (parse, Line)
 > import Text.Parsec.String
-> import Data.Char (ord, chr)
+
 > import Data.Vector.Unboxed (Vector)
 > import qualified Data.Vector.Unboxed as U
-> import Data.Vector.Unboxed.Mutable ()
-> import Data.List
-> import System.Environment
-> import Data.Map (Map)
-> import qualified Data.Map as M
-> import Debug.Trace
 
 A dance is a sequence of `Move`s.
 
@@ -88,98 +88,42 @@ Generic permutation composition.
 > (@@) :: Vector Int -> Vector Int -> Vector Int
 > p1 @@ p2 = U.backpermute p1 p2
 
+One step in a dance. Notice how `Exchange` and `Partner` are actually right
+and left composition. That is quite neat.
+
 > step :: Line -> Move -> Line
 > step (L xs) (Spin n)       = L $ xs @@ fromPerm (rotate n)
 > step (L xs) (Exchange a b) = L $ xs @@ fromPerm (swap a b)
 > step (L xs) (Partner a b)  = L $ fromPerm (swap a b) @@ xs
 
+A single dance.
+
 > dance :: Line -> Dance -> Line
 > dance l (D ds) = foldl' step l ds
+
+The lines after the same dance is performed from the previous dance's end
+position.
 
 > danceLines :: Dance -> [Line]
 > danceLines = scanl' dance initialLine . repeat
 
-findLoop :: [Line] -> Map (Vector Int) Int
-findLoop = foldl' go (M.empty :: Map (Vector Int) Int) . zip [0..]
-  where
-    go m (j,L l) = case M.lookup l m of
-      Just i -> traceShow (i,j,l) m
-      Nothing -> M.insert l j m
+Find the first time a line repeats. Which one we search for doesn't matter.
 
-> findLoop :: [Line] -> (Int, Int, Map (Vector Int) Int)
-> findLoop = foldl' go (0, 0, M.empty :: Map (Vector Int) Int) . zip [0..]
->   where
->     go (i,j,m) (j',L l) = case M.lookup l m of
->       Just i -> (i,j,m)
->       Nothing -> (i,j,M.insert l j m)
+> loopLength :: Eq a => [a] -> Int
+> loopLength (x:xs) = succ . fromJust . findIndex (x ==) $ xs
+> loopLength _ = error "cannot find loop for list of less than 2 elements"
 
 > main :: IO ()
 > main = do
->   -- [n] <- map read <$> getArgs
 >   d <- parse <$> readFile "input.txt"
->   print $ findLoop $ danceLines d
-
-> danceN :: Int -> Dance -> Line
-> danceN = (foldl' dance initialLine .) . replicate
-
-Down to only 69 days of computation this way >_>
-
-main :: IO ()
-main = do
-  [n] <- map read <$> getArgs
-  d <- parse <$> readFile "input.txt"
-  print $ danceN n d
-
-
-
-
-
-
-A `Dance` can be expressed as a `Perm` which mutates its starting `Line` into
-its eventual ending `Line`.
-
-There is one caveat: the permutation is not uniquely determined. This is
-because of the `Partner` moves. Here's an example.
-
-                   line 1 |   move      | line 2
-                  --------+-------------+--------
-                   0 1 2  | Partner 1 2 | 1 0 2
-                   0 2 1  | Spin 1      | 2 0 1
-                   1 0 2  |             | 1 2 0
- resulting perm:   1 0 2                  0 2 1
-
-Exchange and Spin only care about positions, not contents, hence the resulting
-permutation is the same, here's an example:
-
-                   line 1 |   move       | line 2
-                  --------+--------------+--------
-                   0 1 2  | Exchange 1 2 | 1 0 2
-                   0 2 1  | Spin 1       | 1 2 0
-                   1 0 2  |              | 0 1 2
- resulting perm:   1 0 2                   1 0 2
-
-If there is any hope of reducing the amount of work of the 1.000.000.000
-iterations asked it is in finding a loop in the sequence of `(Line,Perm)` pairs.
-
-In particular if going through `N` `Dance`s starting from a given line comes
-back to any of its previous states we can cut down on the amount of computation,
-hopefully drastically.
-
-
-type Memo = Map (Line,Perm) Int
-
-
-
-Goal: translate a `Dance` starting from a given line into its `Perm`.
-
-permFromDance :: Line -> Dance -> (Line,Perm)
-
-
-f :: Line -> Dance -> (Line,Perm)
-
-
-
-
+>   let ls = danceLines d
+>   let n = loopLength ls
+>   let (q,r) = 1000000000 `divMod` n
+>   putStr . concat $
+>     [ "loop length: ", show n, "\n"
+>     , "1000000000 = ", show q, "*", show n, " + ", show r, "\n"
+>     , "line after ", show r, " dances: " ]
+>   print $ ls !! r
 
 Parsing
 
