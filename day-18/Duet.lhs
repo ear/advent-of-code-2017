@@ -150,7 +150,7 @@ The respective implementations which modify the current state of the machine.
 >   x <- M.findWithDefault 0 reg <$> gets regs_
 >   case x of
 >     0 -> _jump 1
->     n -> _jump offset
+>     _ -> _jump offset
 
 Problem's solution: parse the program and execute it until a frequency is
 recovered.
