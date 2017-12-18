@@ -10,7 +10,7 @@
 > import Data.Foldable
 > import Data.Map.Strict (Map)
 > import qualified Data.Map.Strict as M
-> import Control.Monad.Trans.State.Strict
+> import Control.Monad.Trans.State.Lazy
 
 > data Lit
 >   = L Char           -- Labels: 'a', 'b', ...
@@ -51,36 +51,82 @@ there otherwise have nothing done to many1 digit.
 >       "rcv" -> RCV <$> lit
 >       "jgz" -> JGZ <$> lit <*> lit
 
-> data S = S { regs_ :: Map Char Int, played_ :: [Int], recovered_ :: [Int] }
+A program "zipper" that focuses on an instruction. Will need this for jumping.
+
+> data Program' = P' { left_ :: [OP], curr_ :: OP, right_ :: [OP] }
 >   deriving (Show)
 
-> emptyS :: S
-> emptyS = S { regs_ = M.empty, played_ = [], recovered_ = [] }
+> zipProgram :: Program -> Program'
+> zipProgram (o:os) = P' [] o os
+> zipProgram _ = error "empty program"
+
+> jump :: Int -> Program' -> Program'
+> jump 0 p' = p'
+> jump 1    (P' ls x (r:rs)) = (P' (x:ls) r rs)
+> jump (-1) (P' (l:ls) x rs) = (P' ls l (x:rs))
+> jump n p' | n > 0 = jump (n-1) (jump 1    p')
+> jump n p' | n < 0 = jump (n+1) (jump (-1) p')
+
+The machine state `S` for the program evaluation.
+
+> data S = S
+>   { prog'_ :: Program'    -- Zipper to keep track of the program execution
+>   , regs_ :: Map Char Int -- Map of register names to register values
+>   , played_ :: [Int]      -- (Reversed) history of played frequencies
+>   , recovered_ :: [Int]   -- (Reversed) history of recovered frequencies
+>   } deriving (Show)
+
+> fromProgram :: Program -> S
+> fromProgram p = S
+>   { prog'_ = zipProgram p, regs_ = M.empty, played_ = [], recovered_ = [] }
 
 > type Eval = State S
 
-> eval :: Program -> S
-> eval p = execState (evalProgram p) emptyS
+Tracing the execution of a program means executing each of its operations
+ad infinitum and collecting the sequence of states it puts the machine into.
 
-> evalProgram :: Program -> Eval ()
-> evalProgram = traverse_ evalOP
+> trace :: Program -> [S]
+> trace = evalState loop . fromProgram
 
-`v` extracts the value out of a literal, two cases:
-  - the current value of the named register
-  - the specified number
+Here we use `sequence` over an infinite list. That is why we need the lazy
+version of the `State` monad. The strictness of `(>>=)` would make it loop
+forever otherwise.
+
+> loop :: Eval [S]
+> loop = sequence (repeat step)
+
+> step :: Eval S
+> step = do
+>   op <- gets (curr_ . prog'_) -- fetch the current OP to execute
+>   exec op                     -- execute it
+>   get                         -- return the current state
+
+Executing an operation.
+
+The "microcode" `v` extracts the value out of a literal:
+
+  - if it's a label, get the current value of the named register (0 if unset)
+  - the number itself otherwise
 
 > v :: Lit -> Eval Int
 > v (L x) = (fromMaybe 0 . M.lookup x) <$> gets regs_
 > v (N x) = pure x
 
-> evalOP :: OP -> Eval ()
-> evalOP (SND l1      ) = _snd =<< v l1
-> evalOP (SET (L x) l2) = _set x =<< v l2
-> evalOP (ADD (L x) l2) = _op2 (+)   x =<< v l2
-> evalOP (MUL (L x) l2) = _op2 (*)   x =<< v l2
-> evalOP (MOD (L x) l2) = _op2 (mod) x =<< v l2
-> evalOP (RCV (L x)   ) = _rcv x
-> evalOP (JGZ (L x) l2) = _jgz x =<< v l2
+Effectful execution of 1 OP.
+
+> exec :: OP -> Eval ()
+> exec (SND l1      ) = do { _snd =<< v l1        ; _jump 1 }
+> exec (SET (L x) l2) = do { _set x =<< v l2      ; _jump 1 }
+> exec (ADD (L x) l2) = do { _op2 (+)   x =<< v l2; _jump 1 }
+> exec (MUL (L x) l2) = do { _op2 (*)   x =<< v l2; _jump 1 }
+> exec (MOD (L x) l2) = do { _op2 (mod) x =<< v l2; _jump 1 }
+> exec (RCV (L x)   ) = do { _rcv x               ; _jump 1 }
+> exec (JGZ (L x) l2) = do { _jgz x =<< v l2                }
+
+The respective implementations which modify the current state of the machine.
+
+> _jump :: Int -> Eval ()
+> _jump offset = modify (\s -> s { prog'_ = jump offset (prog'_ s) } )
 
 > _snd :: Int -> Eval ()
 > _snd freq = modify (\s -> s { played_ = freq : played_ s })
@@ -101,10 +147,15 @@ there otherwise have nothing done to many1 digit.
 
 > _jgz :: Char -> Int -> Eval ()
 > _jgz reg offset = do
->   Just x <- M.lookup reg <$> gets regs_
->   when (x >= 2) $ undefined
+>   x <- M.findWithDefault 0 reg <$> gets regs_
+>   case x of
+>     0 -> _jump 1
+>     n -> _jump offset
+
+Problem's solution: parse the program and execute it until a frequency is
+recovered.
 
 > main :: IO ()
 > main = do
 >   Right program <- parse parseProgram "input.txt" <$> readFile "input.txt"
->   mapM_ print program
+>   print . head . dropWhile (null . recovered_) . trace $ program
