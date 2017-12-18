@@ -1,0 +1,8 @@
+snd 1
+rcv p
+add p -1
+snd p
+jgz p -2
+set a 1
+rcv b
+jgz a -1

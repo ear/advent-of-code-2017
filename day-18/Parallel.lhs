@@ -1,3 +1,4 @@
+> {-# LANGUAGE TupleSections #-}
 > module Main where
 
 > import Control.Monad
@@ -12,6 +13,7 @@
 > import System.Environment
 
 > import Debug.Trace hiding (trace)
+> import Data.List
 
 > data Lit
 >   = L Char           -- Labels: 'a', 'b', ...
@@ -137,16 +139,46 @@ Tracing the execution of two parallel programs.
 
 > loop2 :: Eval Int
 > loop2 = do
->   step 1
 >   step 0
->   s0 <- gets (status_ . p0_)
->   s1 <- gets (status_ . p1_)
+>   step 1
+>   s0 <- gets (status_ . p_ 0)
+>   q0 <- gets (queue_ . p_ 0)
+>   op0 <- gets (curr_ . prog'_ . p_ 0)
+>   s1 <- gets (status_ . p_ 1)
+>   q1 <- gets (queue_ . p_ 1)
+>   op1 <- gets (curr_ . prog'_ . p_ 1)
+>   when (s0 == Paused) $ traceM . show $ (op0,s0,q0,op1,s1,q1)
 >   case (s0,s1) of
->     (Paused,Paused) -> gets count_  -- Deadlock
->     (Ended,Ended)   -> gets count_  -- Both programs terminated normally
->     s@(Paused,_)    -> traceShow "0 paused" loop2
->     s@(_,Paused)    -> traceShow "1 paused" loop2
->     _               -> loop2
+>     (Paused,Paused) -> gets count_
+>     _ -> loop2
+
+loop2 :: Eval Int
+loop2 = do
+  iter0 <- runUntilPaused 0
+  iter1 <- runUntilPaused 1
+  s0 <- gets (status_ . p0_)
+  s1 <- gets (status_ . p1_)
+  p0 <- gets (p0_)
+  p1 <- gets (p1_)
+  s2 <- get
+  when (count_ s2 `mod` 1 == 0) $ traceM (show s2)
+  -- traceM . intercalate "\t" $
+  --   ["0:",show iter0,show (queue_ p0),show (curr_ $ prog'_ p0)]
+  -- traceM . intercalate "\t" $
+  --   ["1:",show iter1,show (queue_ p1),show (curr_ $ prog'_ p1)]
+  case (s0, queue_ p0, s1, queue_ p1) of
+    (Paused, [], Paused, []) -> gets count_  -- Deadlock
+    _ -> loop2
+
+> runUntilPaused :: Int -> Eval Int
+> runUntilPaused n = go 1
+>   where
+>     go i = do
+>       step n
+>       s <- gets (status_ . p_ n)
+>       case s of
+>         Paused -> return i
+>         _      -> go (i+1)
 
 Execute one step of the n-th program (n=0,1)
 
@@ -163,7 +195,9 @@ Execute one step of the n-th program (n=0,1)
 Counting for the problem's solution.
 
 > incrementProblemCount :: Eval ()
-> incrementProblemCount = modify (\s2 -> s2 { count_ = succ (count_ s2) })
+> incrementProblemCount = do
+>   -- traceM "1 incremented the count"
+>   modify (\s2 -> s2 { count_ = succ (count_ s2) })
 
 > v :: Int -> Lit -> Eval Int
 > v n (L x) = (fromMaybe 0 . M.lookup x) <$> gets (regs_ . p_ n)
@@ -192,7 +226,8 @@ The respective implementations which modify the current state of the machine.
 > _snd :: Int -> Int -> Eval ()
 > _snd n val = let n' = succ n `mod` 2 in do -- id of the other process
 >   modifyN n' (\s -> s { queue_ = val : queue_ s })
->   when (n == 1) incrementProblemCount
+>   if (n == 1) then incrementProblemCount else return ()
+>   -- traceShow (n,"send",val) $ return ()
 
 > _set :: Int -> Char -> Int -> Eval ()
 > _set n reg val = modifyN n (\s ->
@@ -204,6 +239,7 @@ The respective implementations which modify the current state of the machine.
 
 > _rcv :: Int -> Char -> Eval Status
 > _rcv n reg = do
+>   -- traceShow (n,"receive on",reg) $ return ()
 >   q <- gets (queue_ . p_ n)
 >   case q of
 >     [] -> return Paused -- empty queue, pause.
