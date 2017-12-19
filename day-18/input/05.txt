@@ -1,7 +1,7 @@
     i = 31
     a = 1
     p = p * 17
-    p > 0: goto L6
+    p > 0: goto L7
     do {
         a = a * 2
         --i
@@ -14,7 +14,7 @@ L1: c = (((((c * 8505) mod a) * 129749) + 12345) mod a)
     SEND(b)
     --i
     i > 0: goto L1
-L6: a > 0: goto L2
+L7: a > 0: goto L2
 L3: RECV(b)
     b > 0: goto L3
 L2: f = 0
