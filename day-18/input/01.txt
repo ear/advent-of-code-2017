@@ -1,0 +1,44 @@
+    i = 31
+    a = 1
+    p = p * 17      (p=0,1)
+    p > 0: goto p
+L0: a = a * 2
+    --i
+    i > 0: goto L0
+    --a
+    i = 127
+    p = 464
+L1: p = p * 8505
+    p = p mod a
+    p = p * 129749
+    p = p + 12345
+    p = p mod a
+    b = p
+    b = b mod 10000
+    SEND(b)
+    --i
+    i > 0: goto L1
+    a > 0: goto L2
+L3: RECV(b)
+    b > 0: goto L3
+L2: f = 0
+    i = 126
+    RECV(a)
+L6: RECV(b)
+    p = a
+    p = -p
+    p = p + b
+    p > 0: goto L4
+    SEND(a)
+    a = b
+    goto L5
+L4: SEND(b)
+    f = 1
+L5: --i
+    i > 0: goto L6
+    SEND(a)
+    f > 0: goto L2
+    a > 0: goto L3
+
+from assembler
+to pseudo C with gotos
