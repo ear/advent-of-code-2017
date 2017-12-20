@@ -54,14 +54,18 @@ print $ 2 @* ((1,2,3) :: V3)
 >     toParticle _ = error "parse error"
 
 > collisions :: Particle -> Particle -> Solutions
-> collisions (P (x0,v0,a0)) (P (x1,v1,a1)) = let
+> collisions p0@(P (x0,v0,a0)) p1@(P (x1,v1,a1)) = let
 >   (x0x,x0y,x0z) = x0; (x1x,x1y,x1z) = x1
 >   (v0x,v0y,v0z) = v0; (v1x,v1y,v1z) = v1
 >   (a0x,a0y,a0z) = a0; (a1x,a1y,a1z) = a1
->   px = (x0x-x1x, v0x-v1x, a0x-a1x)
->   py = (x0y-x1y, v0y-v1y, a0y-a1y)
->   pz = (x0z-x1z, v0z-v1z, a0z-a1z)
->   in foldl' (∩) Infinite $ traceShowId $ map positiveRoots [px,py,pz]
+>   -- the calculation of the position is funky!
+>   px = (2*(x0x-x1x), 2*(v0x-v1x) + a0x-a1x, a0x-a1x)
+>   py = (2*(x0y-x1y), 2*(v0y-v1y) + a0y-a1y, a0y-a1y)
+>   pz = (2*(x0z-x1z), 2*(v0z-v1z) + a0z-a1z, a0z-a1z)
+>   roots = map positiveRoots [px,py,pz]
+>   foo | (length . filter nonZero $ roots) == 3 = traceShowId (roots,p0,p1)
+>       | otherwise = ([],P (undefined,undefined,undefined), P (undefined,undefined,undefined))
+>   in foo `seq` foldl' (∩) Infinite roots
 
 > data Solutions = Zero | N [Integer] | Infinite deriving (Show, Eq)
 
@@ -79,15 +83,17 @@ Encoded as a vector (a0,a1,a2):
 > positiveRoots ( 0, 0, 0) = Infinite
 > positiveRoots ( 0,a1,a2) = positiveRoots (a1,a2,0)
 > positiveRoots (a0,a1,a2) =
->   case nub $ filter (\x -> x > 0 && a0+(a1*x)+(a2*x*x) == 0) (divisors (abs a0)) of
+>   case nub $ filter (\x -> a0+(a1*x)+(a2*x*x) == 0) (divisors a0) of
 >     [] -> Zero
 >     xs -> N xs
 
 > divisors :: Integer -> [Integer]
-> divisors n = ds ++ map negate ds
->   where
->     ds = (1:) $ (n:) $ nub $ concat [[x, div n x] | x <- [2 .. limit], rem n x == 0]
->     limit = floor $ sqrt $ fromInteger n
+> divisors n
+>   | n < 0 = divisors (negate n)
+>   | otherwise = ds ++ map negate ds
+>     where
+>       ds = (1:) $ (n:) $ nub $ concat [[x, div n x] | x <- [2 .. limit], rem n x == 0]
+>       limit = floor $ sqrt $ fromInteger n
 
 > polyFromRoots x1 x2 = (x1*x2,negate (x1+x2),1)
 
