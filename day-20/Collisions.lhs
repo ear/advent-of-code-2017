@@ -15,16 +15,11 @@
 > main :: IO ()
 > main = do
 >   ps <- parse <$> readFile "input.txt"
->   mapM_ (putStr . show) $
->     map (\i -> filter nonZero $ collisions (ps !! i) <$> (ps \\ [ps !! i])) $
->       [0..length ps - 1]
+>   print . length . head . drop 1 . survivors $ ps
 
-print $ 2 @* ((1,2,3) :: V3)
+Vectors as triples. Integers for safety.
 
 > type V3 = (Integer,Integer,Integer)
-
- instance Eq V3 where
-   (x0,y0,z0) == (x1,y1,z1) = (x0==x1,y0==y1,z0==z1)
 
 > x_, y_, z_ :: V3 -> Integer
 > x_ (x,_,_) = x
@@ -37,12 +32,16 @@ print $ 2 @* ((1,2,3) :: V3)
 > (@*) :: Integer -> V3 -> V3
 > a @* (x,y,z) = (a*x,a*y,a*z)
 
+Particles.
+
 > newtype Particle = P (V3,V3,V3) deriving (Show, Eq)
 
 > p, v, a :: Particle -> V3
 > p (P (x,_,_)) = x
 > v (P (_,v,_)) = v
 > a (P (_,_,a)) = a
+
+A to-the-point approach to parsing 😜
 
 > parse :: String -> [Particle]
 > parse = map (toParticle . map read . words) . lines . concatMap clean
@@ -52,6 +51,9 @@ print $ 2 @* ((1,2,3) :: V3)
 >             | otherwise                 = []
 >     toParticle [x,y,z,vx,vy,vz,ax,ay,az] = P ((x,y,z), (vx,vy,vz), (ax,ay,az))
 >     toParticle _ = error "parse error"
+
+To find collisions between two particles we solve integral-coefficient
+polynomials for integral positive roots, then intersect their solutions.
 
 > collisions :: Particle -> Particle -> Solutions
 > collisions p0@(P (x0,v0,a0)) p1@(P (x1,v1,a1)) = let
@@ -63,9 +65,10 @@ print $ 2 @* ((1,2,3) :: V3)
 >   py = (2*(x0y-x1y), 2*(v0y-v1y) + a0y-a1y, a0y-a1y)
 >   pz = (2*(x0z-x1z), 2*(v0z-v1z) + a0z-a1z, a0z-a1z)
 >   roots = map positiveRoots [px,py,pz]
->   foo | (length . filter nonZero $ roots) == 3 = traceShowId (roots,p0,p1)
->       | otherwise = ([],P (undefined,undefined,undefined), P (undefined,undefined,undefined))
->   in foo `seq` foldl' (∩) Infinite roots
+>   -- foo | (length . filter nonZero $ roots) == 3 = traceShowId (roots,p0,p1)
+>   --     | otherwise = ([],P (undefined,undefined,undefined), P (undefined,undefined,undefined))
+>   -- in foo `seq` foldl' (∩) Infinite roots
+>   in  foldl' (∩) Infinite roots
 
 > data Solutions = Zero | N [Integer] | Infinite deriving (Show, Eq)
 
@@ -105,3 +108,23 @@ Now to find the common solutions to three polynomials.
 > Infinite ∩ s        = s
 > s        ∩ Infinite = s
 > (N xs)   ∩ (N ys)   = N $ intersect xs ys
+
+Now let's simulate the universe and remove particles that collide. This function
+will return the number of eventual survivors.
+
+> survivors :: [Particle] -> [M.Map Int Particle]
+> survivors = iterate remove . M.fromList . zip [0..]
+
+> remove :: M.Map Int Particle -> M.Map Int Particle
+> remove m = let
+>   (i,p0) = M.findMin m
+>   in go i p0 m
+>   where
+>     go i p0 m = let
+>       f m' j p1 = case p0 /= p1 && nonZero (collisions p0 p1) of
+>                     True -> M.delete j (M.delete i m')
+>                     False -> m'
+>       m' = M.foldlWithKey f m m
+>       in case M.lookupGT i m' of
+>            Nothing       -> m'
+>            Just (i',p0') -> go i' p0' m'
