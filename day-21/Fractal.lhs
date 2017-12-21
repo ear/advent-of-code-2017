@@ -7,6 +7,7 @@
 > import Control.Exception
 > import Data.Vector.Unboxed (Vector)
 > import qualified Data.Vector.Unboxed as V
+> import qualified Data.Vector.Unboxed.Mutable as U
 > import qualified Data.Map.Strict as M
 
 --------------------------------------------------------------------------------
@@ -223,15 +224,44 @@ symmetric inputs.
 
 (2) iterate the process
 
-Just a test :)
+> start = S { size_ = 3, v_ = V.fromList [0,1,0, 0,0,1, 1,1,1] }
 
 > enhance :: Enhancements -> Square -> Maybe Square
-> enhance (map_ -> m) = flip M.lookup m
+> enhance (map_ -> m) s = let
+>   -- size of the square
+>   l = size_ s
+>
+>   -- size of the sub-squares
+>   sl = case l of
+>          _ | l `mod` 2 == 0 -> 2
+>          _ | l `mod` 3 == 0 -> 3
+>
+>   -- number of sub-squares
+>   sn = l `div` sl
+>
+>   -- sub-squares
+>   ss = s `chop` sl
+>
+>   -- map sub-squares to their respective enhancements (in the maybe monad)
+>   es = sequence $ (`M.lookup` m) <$> ss
+>
+>   -- put together the enhanced image
+>   in unchop l <$> es
 
-*Main> enhance es (S 3 $ V.fromList [0,1,0,0,0,1,1,1,1])
-Just (S {size_ = 4, v_ = [1,1,1,0,1,0,1,0,0,1,0,0,0,1,0,1]})
+> chop :: Square -> Int -> [Square]
+> chop s 1 = [s]
+> chop _ n | n < 1 || n > 3 = error "unsupported chopping"
+> chop s@(S l v) _ = let
+>   v' = V.create $ do foo <- V.thaw v
+>                      return foo
+>   in [S l v']
 
-Yay.
+> unchop :: Int -> [Square] -> Square
+> unchop = undefined
+
+> enhances es = unfoldr (((id &&& id) <$>) . enhance es)
+
+This is the right skeleton. Lots of work to do :D
 
 (3) count the bits
 
