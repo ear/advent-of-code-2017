@@ -246,7 +246,7 @@ symmetric inputs.
 >   es = sequence $ (`M.lookup` m) <$> ss
 >
 >   -- put together the enhanced image
->   in traceShow ss $ unchop l sl <$> es
+>   in unchop <$> es
 
 > chop :: Square -> Int -> Int -> [Square]
 > chop s         1 _  = [s]
@@ -259,24 +259,29 @@ symmetric inputs.
 >       let slice = MV.slice (k+j*l) sl mv
 >       writeSlice smv slice (j*sl) sl
 >     return smv
->   in S l <$> map extract [l*sl*k + sl*i | k <- [0 .. n'-1], i <- [0 .. n'-1]]
+>   in S sl <$> map extract [l*sl*k + sl*i | k <- [0 .. n'-1], i <- [0 .. n'-1]]
 
 > writeSlice mdest msrc i len = do
 >   forM [0 .. len-1] $ \j -> do
 >     x <- MV.read msrc j
 >     MV.write mdest (i+j) x
 
-> unchop :: Int -> Int -> [Square] -> Square
-> unchop l sl ss = S l' v
+> unchop :: [Square] -> Square
+> unchop ss = S l v
 >   where
->     l' = size_ (head ss) * sl
+>     n = length ss
+>     n' = round . sqrt . fromIntegral $ n
+>     sl = size_ (head ss)
+>     l = n'*sl
+>     ss' = map v_ ss
 >     v = V.create $ do
->       mv <- MV.new (l'*l')
->       forM [0 .. length ss - 1] $ \k -> do
->         let (x,y) = k `divMod` 3
->         forM [0 .. sl-1] $ \i -> do
->           forM [0 .. sl-1] $ \j -> do
->             MV.write mv (i+j) 31337
+>       mv <- MV.new (l*l)
+>       let idx = zip [0..] [l*sl*k + sl*i | k <- [0 .. n'-1], i <- [0 .. n'-1]]
+>       forM idx $ \(si,k) -> do
+>         ms <- V.thaw (ss' !! si)
+>         forM [0 .. sl-1] $ \j -> do
+>           let slice = MV.slice (j*sl) sl ms
+>           writeSlice mv slice (k+j*l) sl
 >       return mv
 
 > enhances es = unfoldr (((id &&& id) <$>) . enhance es)
