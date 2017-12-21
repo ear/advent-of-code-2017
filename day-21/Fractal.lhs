@@ -1,9 +1,10 @@
-> {-# LANGUAGE LambdaCase, TypeSynonymInstances, FlexibleInstances #-}
+> {-# LANGUAGE LambdaCase, TupleSections, ViewPatterns #-}
 > import Data.Ord
 > import Data.List
 > import Data.Function
 > import Control.Monad
 > import Control.Arrow
+> import Control.Exception
 > import Data.Vector.Unboxed (Vector)
 > import qualified Data.Vector.Unboxed as V
 > import qualified Data.Map.Strict as M
@@ -184,27 +185,54 @@ Let's deal in just `Square`s. Where `size_` is their side.
 > instance Squared Sq3 where
 >   fromSq (Sq3 v) = S 3 v
 
+> instance Symmetric Square where
+>   (S n v) @@ (Sym m) = assert (n*n == V.length m) (S n $ V.backpermute v m)
+
+> syms :: Int -> [Sym]
+> syms 2 = s2syms
+> syms 3 = s3syms
+> syms _ = error "don't have symmetries for this size square"
+
 The book of enhancements. It is augmented with copies of each rule that match
 symmetric inputs.
 
 > data Enhancements = E { map_ :: M.Map Square Square } deriving (Show)
 
-> readEnhancements :: IO Enhancements
-> readEnhancements = foldl' collect (E M.empty) . parse <$> readFile "input.txt"
+> parseEnhancements :: String -> Enhancements
+> parseEnhancements = foldl' collect (E M.empty) . parse
 
 > collect :: Enhancements -> [Int] -> Enhancements
-> collect (E m) inout = E $ M.union ps m
->   where
->     n = case length inout of { 13 -> 2; 25 -> 3 }
->     (is,os) = splitAt (n*n) inout
->     i = S n $ V.fromListN (n*n) is
->     o = undefined
->     ps = M.fromList [(i,o)]
-
-> enhance :: Square -> Square
-> enhance = undefined
+> collect (E m) inout = let
+>
+>   -- quirk from dirty parsing
+>   n = case length inout of { 13 -> 2; 25 -> 3 }
+>   (is,os) = splitAt (n*n) inout
+>
+>   -- (i)nput square, (o)utput square
+>   i = S { size_ = n    , v_ = V.fromListN (n*n)         is }
+>   o = S { size_ = (n+1), v_ = V.fromListN ((n+1)*(n+1)) os }
+>
+>   -- all conceivable symmetric inputs for this size square
+>   ii = (i @@) <$> syms n
+>
+>   -- paired with the same output
+>   m' = M.fromList $ map (,o) ii
+>
+>   -- added to the tally of enhancement rules
+>   in E $ M.union m' m
 
 (2) iterate the process
+
+Just a test :)
+
+> enhance :: Enhancements -> Square -> Maybe Square
+> enhance (map_ -> m) = flip M.lookup m
+
+*Main> enhance es (S 3 $ V.fromList [0,1,0,0,0,1,1,1,1])
+Just (S {size_ = 4, v_ = [1,1,1,0,1,0,1,0,0,1,0,0,0,1,0,1]})
+
+Yay.
+
 (3) count the bits
 
 ~
