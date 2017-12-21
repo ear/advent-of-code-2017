@@ -7,7 +7,7 @@
 > import Control.Exception
 > import Data.Vector.Unboxed (Vector)
 > import qualified Data.Vector.Unboxed as V
-> import qualified Data.Vector.Unboxed.Mutable as U
+> import qualified Data.Vector.Unboxed.Mutable as MV
 > import qualified Data.Map.Strict as M
 
 --------------------------------------------------------------------------------
@@ -237,31 +237,51 @@ symmetric inputs.
 >          _ | l `mod` 3 == 0 -> 3
 >
 >   -- number of sub-squares
->   sn = l `div` sl
+>   sn = (l `div` sl)^2
 >
 >   -- sub-squares
->   ss = s `chop` sl
+>   ss = chop s sn sl
 >
 >   -- map sub-squares to their respective enhancements (in the maybe monad)
 >   es = sequence $ (`M.lookup` m) <$> ss
 >
 >   -- put together the enhanced image
->   in unchop l <$> es
+>   in traceShow ss $ unchop l sl <$> es
 
-> chop :: Square -> Int -> [Square]
-> chop s 1 = [s]
-> chop _ n | n < 1 || n > 3 = error "unsupported chopping"
-> chop s@(S l v) _ = let
->   v' = V.create $ do foo <- V.thaw v
->                      return foo
->   in [S l v']
+> chop :: Square -> Int -> Int -> [Square]
+> chop s         1 _  = [s]
+> chop s@(S l v) n sl = let
+>   n' = round . sqrt . fromIntegral $ n
+>   extract k = V.create $ do
+>     mv <- V.thaw v
+>     smv <- MV.new (sl*sl)
+>     forM [0 .. sl-1] $ \j -> do
+>       let slice = MV.slice (k+j*l) sl mv
+>       writeSlice smv slice (j*sl) sl
+>     return smv
+>   in S l <$> map extract [l*sl*k + sl*i | k <- [0 .. n'-1], i <- [0 .. n'-1]]
 
-> unchop :: Int -> [Square] -> Square
-> unchop = undefined
+> writeSlice mdest msrc i len = do
+>   forM [0 .. len-1] $ \j -> do
+>     x <- MV.read msrc j
+>     MV.write mdest (i+j) x
+
+> unchop :: Int -> Int -> [Square] -> Square
+> unchop l sl ss = S l' v
+>   where
+>     l' = size_ (head ss) * sl
+>     v = V.create $ do
+>       mv <- MV.new (l'*l')
+>       forM [0 .. length ss - 1] $ \k -> do
+>         let (x,y) = k `divMod` 3
+>         forM [0 .. sl-1] $ \i -> do
+>           forM [0 .. sl-1] $ \j -> do
+>             MV.write mv (i+j) 31337
+>       return mv
 
 > enhances es = unfoldr (((id &&& id) <$>) . enhance es)
 
-This is the right skeleton. Lots of work to do :D
+Chop is finally good. Unchop is WIP. :D
 
 (3) count the bits
 
