@@ -315,3 +315,46 @@ Chop is finally good. Unchop is WIP. :D
 >     diff <- diffUTCTime now <$> readIORef prev
 >     writeIORef prev now
 >     putStrLn . intercalate "\t" $ [show now, show diff, show i, show n, show $ V.sum v]
+
+*cough*
+
+air:~/Github/ear/advent-of-code-2017/day-21 (master)
+$ time ./Fractal
+2017-12-22 10:48:30.865862 UTC       0.000003s     0       3          5
+2017-12-22 10:48:30.878952 UTC       0.013090s     1       4          8
+2017-12-22 10:48:30.881293 UTC       0.002341s     2       6         25
+2017-12-22 10:48:30.881594 UTC       0.000301s     3       9         58
+2017-12-22 10:48:30.881805 UTC       0.000211s     4      12         78
+2017-12-22 10:48:30.882166 UTC       0.000361s     5      18        205
+2017-12-22 10:48:30.882832 UTC       0.000666s     6      27        516
+2017-12-22 10:48:30.88455  UTC       0.001718s     7      36        730
+2017-12-22 10:48:30.887889 UTC       0.003339s     8      54       1874
+2017-12-22 10:48:30.896301 UTC       0.008412s     9      81       4645
+2017-12-22 10:48:30.911091 UTC       0.014790s    10     108       6538
+2017-12-22 10:48:30.961833 UTC       0.050742s    11     162      16853
+2017-12-22 10:48:31.147146 UTC       0.185313s    12     243      41876
+2017-12-22 10:48:31.554214 UTC       0.407068s    13     324      58832
+2017-12-22 10:48:33.857586 UTC       2.303372s    14     486     151557
+2017-12-22 10:48:50.531194 UTC      16.673608s    15     729     376588
+2017-12-22 10:49:44.424085 UTC      53.892891s    16     972     529586
+2017-12-22 10:56:17.77768  UTC     393.353595s    17    1458    1364380
+2017-12-22 11:30:51.717448 UTC    2073.939768s    18    2187    3389823
+
+real    67m39.892s
+user    64m29.755s
+sys      0m54.654s
+
+As it turns out, it's probably a good idea to keep track of some (all?) of the
+patterns encountered to avoid this exponential growth (:
+
+By patterns I mean group of blocks. I wonder what's a good group size to check?
+The squares looked pretty well mixed at the coarsest grain (unlike the test case
+displayed on the page.)
+
+BTW while waiting I tried this:
+
+    http://www.wolframalpha.com/input/?i=exponential+fit+0.01+0.05+0.2+0.4+2.3+12.7+53.9+393.2
+
+Which gives 0.0000607897*e^(1.96027*x) for the time. Evaluated at the next
+integer gives 2791.5. That is in the ballpark of the 2074s which this code took
+in practice... prediction successful :P
