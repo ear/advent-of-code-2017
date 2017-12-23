@@ -1,0 +1,31 @@
+    a = 2^32-1 = 2147483648
+    p = p * 17
+    if (p == 0) {
+        for (i = 127, c = 464; i > 0; --i) {
+            c = (c * 8505) mod a
+            c = ((c * 129749) + 12345) mod a
+            b = c mod 10000
+            SEND(b)
+        }
+    }
+    goto L2
+    do {
+        do {
+            RECV(b)
+        } while (b > 0)
+L2:     do {
+            f = 0
+            RECV(a)
+            for (i = 126; i > 0; --i) {
+                RECV(b)
+                if (b > a) {
+                    SEND(b)
+                    f = 1
+                }
+                SEND(a)
+                a = b
+                --i
+            }
+            SEND(a)
+        } while (f > 0)
+    } while (a > 0)
