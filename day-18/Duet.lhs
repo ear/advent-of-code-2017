@@ -148,9 +148,9 @@ The respective implementations which modify the current state of the machine.
 > _jgz :: Char -> Int -> Eval ()
 > _jgz reg offset = do
 >   x <- M.findWithDefault 0 reg <$> gets regs_
->   case x of
->     0 -> _jump 1
->     _ -> _jump offset
+>   if x > 0
+>   then _jump offset
+>   else _jump 1
 
 Problem's solution: parse the program and execute it until a frequency is
 recovered.
