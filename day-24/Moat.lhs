@@ -3,6 +3,7 @@
 > import Data.List
 > import Data.Monoid
 > import Data.Foldable
+> import Data.Function
 > import Control.Arrow
 
 > newtype Component = C (Int,Int) deriving (Ord, Eq)
@@ -57,4 +58,10 @@ the test and the given input. Gonna need a MultiSet otherwise.
 > strength = getSum . foldMap (Sum . uncurry (+) . unC)
 
 > main :: IO ()
-> main = print =<< (strength &&& id) . maximumBy (comparing strength) . bridges . parse <$> readFile "input.txt"
+> main = do
+>   bs <- bridges . parse <$> readFile "input.txt"
+>   print . (strength &&& (length &&& id)) . maximumBy (comparing strength) $ bs
+>   print . (strength &&& (length &&& id))
+>         . maximumBy (comparing strength)
+>         . head . groupBy ((==) `on` length)
+>         . reverse . sortBy (comparing length) $ bs
