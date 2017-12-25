@@ -6,7 +6,7 @@
 
 > main :: IO ()
 > main = do
->   print . runState (replicateM 6 step >> diagnostic) $ begin A
+>   print . fst . runState (replicateM 12173597 step >> diagnostic) $ begin A
 
 > data States = A | B | C | D | E | F deriving (Show, Eq)
 
@@ -46,9 +46,21 @@
 >   case l of
 >     A -> case v of
 >       0 -> writeV 1 >> right >> writeL B
->       1 -> writeV 0 >> left  >> writeL B
+>       1 -> writeV 0 >> left  >> writeL C
 >     B -> case v of
 >       0 -> writeV 1 >> left  >> writeL A
+>       1 -> writeV 1 >> right >> writeL D
+>     C -> case v of
+>       0 -> writeV 1 >> right >> writeL A
+>       1 -> writeV 0 >> left  >> writeL E
+>     D -> case v of
+>       0 -> writeV 1 >> right >> writeL A
+>       1 -> writeV 0 >> right >> writeL B
+>     E -> case v of
+>       0 -> writeV 1 >> left  >> writeL F
+>       1 -> writeV 1 >> left  >> writeL C
+>     F -> case v of
+>       0 -> writeV 1 >> right >> writeL D
 >       1 -> writeV 1 >> right >> writeL A
 
 > diagnostic = gets (tdiagnostic . t_)
